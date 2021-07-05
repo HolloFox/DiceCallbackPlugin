@@ -17,8 +17,6 @@ namespace DiceCallbackPlugin
         void Awake()
         {
             Debug.Log("DiceCallback Plug-in loaded");
-
-            ModdingTales.ModdingUtils.Initialize(this, Logger);
         }
 
         /// <summary>
