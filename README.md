@@ -30,6 +30,7 @@ Build the project.
 Browse to the newly created ```bin/Debug``` or ```bin/Release``` folders and copy the ```DiceCallbackPlugin.dll``` to ```Steam\steamapps\common\TaleSpire\BepInEx\plugins```
 
 ## Changelog
+- 1.0.1: Returns Title and Formula of roll with the data
 - 1.0.0: Initial release
 
 ## Shoutouts
