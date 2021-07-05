@@ -14,7 +14,7 @@ namespace DiceCallbackPlugin
 {
     public static class DiceRoller
     {
-        private static Dictionary<string, Action<Dictionary<DiceType, List<int>>>> DiceCallbacks = new Dictionary<string, Action<Dictionary<DiceType, List<int>>>>();
+        private static Dictionary<string, Action<Dictionary<DiceType, List<int>>,string, string>> DiceCallbacks = new Dictionary<string, Action<Dictionary<DiceType, List<int>>,string, string>>();
 
         /// <summary>
         /// Rolls dice
@@ -22,7 +22,7 @@ namespace DiceCallbackPlugin
         /// <param name="flavor">Name of what you're rolling</param>
         /// <param name="formula">text formula such as "1d6+5"</param>
         /// <param name="callback">Callback with results</param>
-        public static void RollDice(string flavor, string formula, Action<Dictionary<DiceType, List<int>>> callback = null)
+        public static void RollDice(string flavor, string formula, Action<Dictionary<DiceType, List<int>>,string, string> callback = null)
         {
             flavor = flavor.Replace(" ", "_");
             formula = formula.Replace(" ", "");
@@ -43,7 +43,7 @@ namespace DiceCallbackPlugin
         /// <param name="flavor">Name of what you're rolling</param>
         /// <param name="formula">Collection of dice to roll</param>
         /// <param name="callback">Callback with results</param>
-        public static void RollDice(string flavor, Dice formula, Action<Dictionary<DiceType, List<int>>> callback = null)
+        public static void RollDice(string flavor, Dice formula, Action<Dictionary<DiceType, List<int>>,string, string> callback = null)
         {
             var textFormula = "";
             var keys = formula.GetKeys();
@@ -184,7 +184,19 @@ namespace DiceCallbackPlugin
                             {
                                 last_key = key;
                                 last = JsonConvert.SerializeObject(DiceCollection);
-                                if (DiceCallbacks.ContainsKey(key)) DiceCallbacks[key](DiceCollection);
+                                var title = last_key.Substring(0, last_key.IndexOf("<size=0>"));
+                                var formula = "";
+
+                                var indexes = DiceCollection.Keys.ToArray();
+                                for (int i = 0; i < indexes.Length; i++)
+                                {
+                                    var index = indexes[i];
+                                    if (i > 0) formula += "+";
+                                    if (index != DiceType.modifier) formula += $"{DiceCollection[index].Count}";
+                                    else formula += $"{DiceCollection[index][0]}";
+                                    if (index != DiceType.modifier) formula += $"{index}";
+                                }
+                                if (DiceCallbacks.ContainsKey(key) && DiceCallbacks[key] != null) DiceCallbacks[key](DiceCollection,title,formula);
                             }
                         }
                     }
