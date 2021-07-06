@@ -1,10 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using GameChat.UI;
-using Mono.Cecil.Cil;
 using Newtonsoft.Json;
 using TMPro;
 using UnityEngine;
@@ -14,7 +10,7 @@ namespace DiceCallbackPlugin
 {
     public static class DiceRoller
     {
-        private static Dictionary<string, Action<Dictionary<DiceType, List<int>>,string, string>> DiceCallbacks = new Dictionary<string, Action<Dictionary<DiceType, List<int>>,string, string>>();
+        private static Dictionary<string, (Action<Dictionary<DiceType, List<int>>,string, string,object>, object)> DiceCallbacks = new Dictionary<string, (Action<Dictionary<DiceType, List<int>>,string, string, object>, object)>();
 
         /// <summary>
         /// Rolls dice
@@ -22,7 +18,8 @@ namespace DiceCallbackPlugin
         /// <param name="flavor">Name of what you're rolling</param>
         /// <param name="formula">text formula such as "1d6+5"</param>
         /// <param name="callback">Callback with results</param>
-        public static void RollDice(string flavor, string formula, Action<Dictionary<DiceType, List<int>>,string, string> callback = null)
+        /// <param name="passThrough">Object to return via callback (part of pass through)</param>
+        public static void RollDice(string flavor, string formula, Action<Dictionary<DiceType, List<int>>,string, string, object> callback = null, object passThrough = null)
         {
             flavor = flavor.Replace(" ", "_");
             formula = formula.Replace(" ", "");
@@ -31,7 +28,7 @@ namespace DiceCallbackPlugin
             var title = $"{flavor}<size=0>{id}";
 
             var command = $"talespire://dice/{title}:{formula}";
-            DiceCallbacks.Add($"{title}", callback);
+            DiceCallbacks.Add($"{title}", (callback,passThrough));
 
             Debug.Log(command);
             System.Diagnostics.Process.Start(command).WaitForExit();
@@ -43,7 +40,8 @@ namespace DiceCallbackPlugin
         /// <param name="flavor">Name of what you're rolling</param>
         /// <param name="formula">Collection of dice to roll</param>
         /// <param name="callback">Callback with results</param>
-        public static void RollDice(string flavor, Dice formula, Action<Dictionary<DiceType, List<int>>,string, string> callback = null)
+        /// <param name="passThrough">Object to return via callback (part of pass through)</param>
+        public static void RollDice(string flavor, Dice formula, Action<Dictionary<DiceType, List<int>>,string, string, object> callback = null, object passThrough = null)
         {
             var textFormula = "";
             var keys = formula.GetKeys();
@@ -63,7 +61,7 @@ namespace DiceCallbackPlugin
                     first = false;
                 }
             }
-            RollDice(flavor,textFormula, callback);
+            RollDice(flavor,textFormula, callback, passThrough);
         }
 
         private static string last = "";
@@ -196,7 +194,7 @@ namespace DiceCallbackPlugin
                                     else formula += $"{DiceCollection[index][0]}";
                                     if (index != DiceType.modifier) formula += $"{index}";
                                 }
-                                if (DiceCallbacks.ContainsKey(key) && DiceCallbacks[key] != null) DiceCallbacks[key](DiceCollection,title,formula);
+                                if (DiceCallbacks.ContainsKey(key) && DiceCallbacks[key].Item1 != null) DiceCallbacks[key].Item1(DiceCollection,title,formula, DiceCallbacks[key].Item2);
                             }
                         }
                     }

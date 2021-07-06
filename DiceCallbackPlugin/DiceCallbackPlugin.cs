@@ -9,7 +9,7 @@ namespace DiceCallbackPlugin
     {
         // constants
         private const string Guid = "org.hollofox.plugins.DiceCallbackPlugin";
-        private const string Version = "1.0.1.0";
+        private const string Version = "1.0.2.0";
 
         /// <summary>
         /// Awake plugin
