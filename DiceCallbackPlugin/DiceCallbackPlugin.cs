@@ -8,8 +8,8 @@ namespace DiceCallbackPlugin
     public class DiceCallbackPlugin : BaseUnityPlugin
     {
         // constants
-        private const string Guid = "org.hollofox.plugins.DiceCallbackPlugin";
-        private const string Version = "1.0.2.0";
+        public const string Guid = "org.hollofox.plugins.DiceCallbackPlugin";
+        private const string Version = "2.0.0.0";
 
         /// <summary>
         /// Awake plugin
@@ -27,6 +27,12 @@ namespace DiceCallbackPlugin
             if (OnBoard())
             {
                 DiceRoller.CheckDice();
+                ResultSetter.CheckResults();
+            }
+            else
+            {
+                DiceRoller.ExitBoard();
+                ResultSetter.ExitBoard();
             }
         }
 
