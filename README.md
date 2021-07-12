@@ -30,6 +30,7 @@ Build the project.
 Browse to the newly created ```bin/Debug``` or ```bin/Release``` folders and copy the ```DiceCallbackPlugin.dll``` to ```Steam\steamapps\common\TaleSpire\BepInEx\plugins```
 
 ## Changelog
+- 2.1.0: Requires return to signature to update the results if needed.
 - 2.0.0: Allow Groups to be rolled and deal with negatives
 - 1.0.2: Allow object pass through
 - 1.0.1: Returns Title and Formula of roll with the data

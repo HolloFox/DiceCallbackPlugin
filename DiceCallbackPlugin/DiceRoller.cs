@@ -10,7 +10,7 @@ namespace DiceCallbackPlugin
 {
     public static class DiceRoller
     {
-        private static Dictionary<string, (Action<Dictionary<DiceType, List<int>>[],string, string,object>, object,string)> DiceCallbacks = new Dictionary<string, (Action<Dictionary<DiceType, List<int>>[],string, string, object>, object,string)>();
+        private static Dictionary<string, (Func<Dictionary<DiceType, List<int>>[],string, string,object, ResultSetterDTO>, object,string)> DiceCallbacks = new Dictionary<string, (Func<Dictionary<DiceType, List<int>>[],string, string, object, ResultSetterDTO>, object,string)>();
 
         internal static void ExitBoard()
         {
@@ -26,7 +26,7 @@ namespace DiceCallbackPlugin
         /// <param name="formula">text formula such as "1d6+5"</param>
         /// <param name="callback">Callback with results</param>
         /// <param name="passThrough">Object to return via callback (part of pass through)</param>
-        public static void RollDice(string flavor, string formula, Action<Dictionary<DiceType, List<int>>[],string, string, object> callback = null, object passThrough = null)
+        public static void RollDice(string flavor, string formula, Func<Dictionary<DiceType, List<int>>[],string, string, object, ResultSetterDTO> callback = null, object passThrough = null)
         {
             flavor = flavor.Replace(" ", "_");
             formula = formula.Replace(" ", "");
@@ -49,7 +49,7 @@ namespace DiceCallbackPlugin
         /// <param name="callback"></param>
         /// <param name="passThrough"></param>
         public static void RollDice(string flavor, Dice formula,
-            Action<Dictionary<DiceType, List<int>>[], string, string, object> callback = null, object passThrough = null)
+            Func<Dictionary<DiceType, List<int>>[], string, string, object, ResultSetterDTO> callback = null, object passThrough = null)
         {
             RollDice(flavor, new Dice[]{formula}, callback, passThrough);
         }
@@ -61,7 +61,7 @@ namespace DiceCallbackPlugin
         /// <param name="formulas">Collection of dice to roll</param>
         /// <param name="callback">Callback with results</param>
         /// <param name="passThrough">Object to return via callback (part of pass through)</param>
-        public static void RollDice(string flavor, Dice[] formulas, Action<Dictionary<DiceType, List<int>>[],string, string, object> callback = null, object passThrough = null)
+        public static void RollDice(string flavor, Dice[] formulas, Func<Dictionary<DiceType, List<int>>[],string, string, object, ResultSetterDTO> callback = null, object passThrough = null)
         {
             var textFormula = "";
             for(var count = 0; count < formulas.Length; count++)
@@ -269,8 +269,16 @@ namespace DiceCallbackPlugin
                                     Debug.Log($"Formula:{formula}");
                                     Debug.Log($"Dice Data:{JsonConvert.SerializeObject(diceCollections)}");
                                     if (DiceCallbacks.ContainsKey(key) && DiceCallbacks[key].Item1 != null)
-                                        DiceCallbacks[key].Item1(diceCollections.ToArray(), title, formula,
+                                    {
+                                        var result = DiceCallbacks[key].Item1(diceCollections.ToArray(), title, formula,
                                             DiceCallbacks[key].Item2);
+                                        if (result != null)
+                                        {
+                                            ResultSetter.SetResults(key,result.Values);
+                                            ResultSetter.NewResultLine(key, result.NewLine);
+                                            ResultSetter.RemoveResults(key);
+                                        }
+                                    }
                                 }
                             }
                         }

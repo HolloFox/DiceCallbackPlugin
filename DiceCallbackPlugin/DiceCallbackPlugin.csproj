@@ -393,6 +393,7 @@
       <DesignTime>True</DesignTime>
       <DependentUpon>Resources.resx</DependentUpon>
     </Compile>
+    <Compile Include="ResultSetterDTO.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

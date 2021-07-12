@@ -15,7 +15,7 @@ namespace DiceCallbackPlugin
         /// This updates both the Prompt and chat results
         /// </summary>
         /// <param name="values">Values to replace</param>
-        public static void SetResults(int[] values)
+        public static void SetResults(string key, int[] values)
         {
 
             /* This needs to be able to set the results for both the 
@@ -40,7 +40,7 @@ namespace DiceCallbackPlugin
         /// <summary>
         /// Removes the = operator and DiceTotalText
         /// </summary>
-        public static void RemoveResults()
+        public static void RemoveResults(string key)
         {
 
             /* This needs to be able to remove All results for both the 
@@ -53,7 +53,7 @@ namespace DiceCallbackPlugin
         /// Add new Line Operator and DiceTotalText
         /// </summary>
         /// <param name="value">Value displayed on new Result Line</param>
-        public static void NewResultLine(int value)
+        public static void NewResultLine(string key, string value)
         {
 
             /* This needs to be able to add last line for both the 
