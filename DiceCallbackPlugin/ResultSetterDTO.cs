@@ -6,6 +6,7 @@ namespace DiceCallbackPlugin
     public class ResultSetterDTO
     {
         public string NewLine;
-        public int[] Values;
+        public string[] Values;
+        public bool ClearResult = false;
     }
 }

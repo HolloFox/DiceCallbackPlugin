@@ -26,19 +26,26 @@ namespace DiceCallbackPlugin
         /// <param name="formula">text formula such as "1d6+5"</param>
         /// <param name="callback">Callback with results</param>
         /// <param name="passThrough">Object to return via callback (part of pass through)</param>
-        public static void RollDice(string flavor, string formula, Func<Dictionary<DiceType, List<int>>[],string, string, object, ResultSetterDTO> callback = null, object passThrough = null)
+        public static void RollDice(string flavor, string formula, Func<Dictionary<DiceType, List<int>>[],string, string, object, ResultSetterDTO> callback = null, object passThrough = null, DiceColor[] diceColors = null)
         {
+            // Manual Dice Roll
             flavor = flavor.Replace(" ", "_");
             formula = formula.Replace(" ", "");
             var id = Guid.NewGuid();
+            if (diceColors == null) diceColors = new DiceColor[0];
 
-            var title = $"{flavor}<size=0>{id}";
-
+            var colors = $"<colors={JsonConvert.SerializeObject(diceColors)}>";
+            var title = $"{flavor}<size=0>{colors}{id}";
             var command = $"talespire://dice/{title}:{formula}";
             DiceCallbacks.Add($"{title}", (callback,passThrough,formula));
 
             Debug.Log(command);
             System.Diagnostics.Process.Start(command).WaitForExit();
+
+            // Automatic Dice Roll
+            // DiceManager.DiceGroupResultData[] groupResults = new DiceManager.DiceGroupResultData[0];
+
+            // DiceManager.SendDiceResult(this.GmOnly, new DiceManager.DiceRollResultData(this._diceRollId, groupResults));
         }
 
         /// <summary>
@@ -61,7 +68,7 @@ namespace DiceCallbackPlugin
         /// <param name="formulas">Collection of dice to roll</param>
         /// <param name="callback">Callback with results</param>
         /// <param name="passThrough">Object to return via callback (part of pass through)</param>
-        public static void RollDice(string flavor, Dice[] formulas, Func<Dictionary<DiceType, List<int>>[],string, string, object, ResultSetterDTO> callback = null, object passThrough = null)
+        public static void RollDice(string flavor, Dice[] formulas, Func<Dictionary<DiceType, List<int>>[],string, string, object, ResultSetterDTO> callback = null, object passThrough = null, Color[] diceColors = null)
         {
             var textFormula = "";
             for(var count = 0; count < formulas.Length; count++)
@@ -90,12 +97,12 @@ namespace DiceCallbackPlugin
                         first = false;
                     }
                 }
-
                 count++;
             }
 
+            var colors = diceColors.Select(d => new DiceColor(d)).ToArray();
             textFormula = textFormula.Replace("+-","-");
-            RollDice(flavor,textFormula, callback, passThrough);
+            RollDice(flavor,textFormula, callback, passThrough, colors);
         }
 
         private static string last = "";
@@ -274,9 +281,13 @@ namespace DiceCallbackPlugin
                                             DiceCallbacks[key].Item2);
                                         if (result != null)
                                         {
-                                            ResultSetter.SetResults(key,result.Values);
-                                            ResultSetter.NewResultLine(key, result.NewLine);
-                                            ResultSetter.RemoveResults(key);
+                                            var text = multi.GetComponentsInChildren<TextMeshProUGUI>();
+                                            
+
+                                            if (!single.isActiveAndEnabled) ResultSetter.SetResults(key,text,result.Values);
+                                            if (!string.IsNullOrWhiteSpace(result.NewLine)) ResultSetter.NewResultLine(key, result.NewLine);
+                                            if (result.ClearResult) ResultSetter.RemoveResults(key);
+                                            ResultSetter.RemoveKey(key);
                                         }
                                     }
                                 }

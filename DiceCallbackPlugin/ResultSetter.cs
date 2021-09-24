@@ -15,13 +15,26 @@ namespace DiceCallbackPlugin
         /// This updates both the Prompt and chat results
         /// </summary>
         /// <param name="values">Values to replace</param>
-        public static void SetResults(string key, int[] values)
+        public static void SetResults(string key, TextMeshProUGUI[] texts, string[] values)
         {
 
             /* This needs to be able to set the results for both the 
                 - Dice Roll Results (Prompt)
                 - Chat Results (Chat Right side)
              */
+
+            // Dice Roll Results
+            var j = 0;
+            foreach (var t in texts)
+            {
+                if (string.IsNullOrWhiteSpace(t.text)) continue;
+                Debug.Log($"{j}:{t.text}");
+                if (values.Length > j && !string.IsNullOrWhiteSpace(values[j]))
+                {
+                    t.text = values[j];
+                }
+                j++;
+            }
         }
 
         /// <summary>
@@ -59,6 +72,14 @@ namespace DiceCallbackPlugin
             /* This needs to be able to add last line for both the 
                 - Dice Roll Results (Prompt)
                 - Chat Results (Chat Right side)
+             */
+        }
+
+        internal static void RemoveKey(string key)
+        {
+            /* This needs to be able to remove the key in the
+             * - Dice Roll Results (Prompt)
+             * - Chat Results (Chat Right side)
              */
         }
     }
