@@ -2,8 +2,11 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using Bounce.Singletons;
 using HarmonyLib;
+using Newtonsoft.Json;
+using Unity.Mathematics;
 using UnityEngine;
 
 namespace DiceCallbackPlugin.Patches
@@ -33,6 +36,55 @@ namespace DiceCallbackPlugin.Patches
             }
 
             return false;
+        }
+    }
+
+    [HarmonyPatch(typeof(Die), "Spawn")]
+    public class DicePatchSpawn
+    {
+        public static bool meCalling = false;
+        static bool Prefix(string resource,
+            float3 pos,
+            quaternion rot,
+            int rollId,
+            byte groupId,
+            bool gmOnlyDie, ref Die __result)
+        {
+            if (DicePatch2.color.Count == 0) return true;
+
+            object[] data = new object[6]
+            {
+                (object) rollId,
+                (object) groupId,
+                (object) gmOnlyDie,
+                (object) DicePatch2.color[0].r,
+                (object) DicePatch2.color[0].g,
+                (object) DicePatch2.color[0].b,
+            };
+            Die component = PhotonNetwork.Instantiate(resource, (Vector3)pos, (Quaternion)rot, (byte)0, data).GetComponent<Die>();
+            
+            Type classType = component.GetType();
+            MethodInfo mi = classType.GetMethod("Init", BindingFlags.Instance | BindingFlags.NonPublic);
+            mi.Invoke(component, new object[] { rollId, groupId, gmOnlyDie });
+
+            __result = component;
+            Debug.Log("Spawn Method Executed");
+            meCalling = true;
+            return false;
+        }
+    }
+
+    [HarmonyPatch(typeof(Die), "OnPhotonInstantiate")]
+    public class DicePatchOnPhotonInstantiate
+    {
+
+        static void Postfix(PhotonMessageInfo info, ref Renderer ___dieRenderer, ref Die __instance)
+        {
+            object[] instantiationData = __instance.photonView?.instantiationData;
+            if (instantiationData != null && instantiationData.Length > 3)
+            {
+                ___dieRenderer.material.SetColor("_Color", new Color((float)instantiationData[3], (float)instantiationData[4], (float)instantiationData[5]));
+            }
         }
     }
 
