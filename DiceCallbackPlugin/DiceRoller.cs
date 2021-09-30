@@ -10,42 +10,30 @@ namespace DiceCallbackPlugin
 {
     public static class DiceRoller
     {
-        private static Dictionary<string, (Func<Dictionary<DiceType, List<int>>[],string, string,object, ResultSetterDTO>, object,string)> DiceCallbacks = new Dictionary<string, (Func<Dictionary<DiceType, List<int>>[],string, string, object, ResultSetterDTO>, object,string)>();
-
-        internal static void ExitBoard()
-        {
-            DiceCallbacks.Clear();
-            last = "";
-            last_key = "";
-        }
-
         /// <summary>
         /// Rolls dice
         /// </summary>
         /// <param name="flavor">Name of what you're rolling</param>
         /// <param name="formula">text formula such as "1d6+5"</param>
-        /// <param name="callback">Callback with results</param>
-        /// <param name="passThrough">Object to return via callback (part of pass through)</param>
-        public static void RollDice(string flavor, string formula, Func<Dictionary<DiceType, List<int>>[],string, string, object, ResultSetterDTO> callback = null, object passThrough = null, DiceColor[] diceColors = null)
+        /// <param name="callbackId">Identifier of Callback from result</param>
+        /// <param name="diceColors">Assign dice colors and textures to pools</param>
+        public static void RollDice(string flavor, string formula, string callbackId, DiceColor[] diceColors = null)
         {
             // Manual Dice Roll
             flavor = flavor.Replace(" ", "_");
             formula = formula.Replace(" ", "");
-            var id = Guid.NewGuid();
             if (diceColors == null) diceColors = new DiceColor[0];
 
-            var colors = $"<colors={JsonConvert.SerializeObject(diceColors)}>";
-            var title = $"{flavor}<size=0>{colors}{id}";
+            var colors = "";
+            foreach (var color in diceColors)
+            { 
+                if (color != null) colors += color.ToTag();
+            }
+            var title = $"{flavor}<size=0>{colors}<callback=\"{callbackId}\">";
             var command = $"talespire://dice/{title}:{formula}";
-            DiceCallbacks.Add($"{title}", (callback,passThrough,formula));
 
             Debug.Log(command);
             System.Diagnostics.Process.Start(command).WaitForExit();
-
-            // Automatic Dice Roll
-            // DiceManager.DiceGroupResultData[] groupResults = new DiceManager.DiceGroupResultData[0];
-
-            // DiceManager.SendDiceResult(this.GmOnly, new DiceManager.DiceRollResultData(this._diceRollId, groupResults));
         }
 
         /// <summary>
@@ -53,12 +41,11 @@ namespace DiceCallbackPlugin
         /// </summary>
         /// <param name="flavor"></param>
         /// <param name="formula"></param>
-        /// <param name="callback"></param>
-        /// <param name="passThrough"></param>
-        public static void RollDice(string flavor, Dice formula,
-            Func<Dictionary<DiceType, List<int>>[], string, string, object, ResultSetterDTO> callback = null, object passThrough = null)
+        /// <param name="callbackId">Identifier of Callback from result</param>
+        /// <param name="diceColors">Assign dice colors and textures to pools</param>
+        public static void RollDice(string flavor, Dice formula, string callbackId, DiceColor diceColors = null)
         {
-            RollDice(flavor, new Dice[]{formula}, callback, passThrough);
+            RollDice(flavor, new Dice[]{formula}, callbackId, new DiceColor[] {diceColors});
         }
 
         /// <summary>
@@ -66,9 +53,9 @@ namespace DiceCallbackPlugin
         /// </summary>
         /// <param name="flavor">Name of what you're rolling</param>
         /// <param name="formulas">Collection of dice to roll</param>
-        /// <param name="callback">Callback with results</param>
-        /// <param name="passThrough">Object to return via callback (part of pass through)</param>
-        public static void RollDice(string flavor, Dice[] formulas, Func<Dictionary<DiceType, List<int>>[],string, string, object, ResultSetterDTO> callback = null, object passThrough = null, Color[] diceColors = null)
+        /// <param name="callbackId">Identifier of Callback from result</param>
+        /// <param name="diceColors">Assign dice colors and textures to pools</param>
+        public static void RollDice(string flavor, Dice[] formulas, string callbackId, DiceColor[] diceColors = null)
         {
             var textFormula = "";
             for(var count = 0; count < formulas.Length; count++)
@@ -100,208 +87,12 @@ namespace DiceCallbackPlugin
                 count++;
             }
 
-            var colors = diceColors.Select(d => new DiceColor(d)).ToArray();
             textFormula = textFormula.Replace("+-","-");
-            RollDice(flavor,textFormula, callback, passThrough, colors);
+            RollDice(flavor,textFormula, callbackId, diceColors);
         }
 
         private static string last = "";
         private static string last_key = "";
-
-        internal static void CheckDice()
-        {
-            if (DiceManager.HasInstance)
-            {
-                var obj = GameObject.Find("GUIManager/PANEL_STRUCTURE/MiddlePanel/MiddlePanel/MiddlePanel/MidTopPanel/DiceRollResults");
-                if (obj != null)
-                {
-                    var comp = obj.GetComponent<UIDiceRollResult>();
-                    if (comp.isActiveAndEnabled)
-                    {
-                        var TXT = comp.transform.GetChild(1).GetChild(0).GetComponent<TextMeshProUGUI>();
-                        var key = TXT.text;
-                        if (key.Contains("Rolled ") )
-                        {
-                            key = key.Replace("Rolled ", "");
-
-                            // We only process if the roll is registered by the Key
-                            if (DiceCallbacks.ContainsKey(key))
-                            {
-                                var single = comp.transform.GetChild(1).GetChild(1).GetChild(0)
-                                    .GetComponent<UIDiceScoreItem>();
-                                var multi = comp.transform.GetChild(1).GetChild(2);
-
-                                var diceCollections = new List<Dictionary<DiceType, List<int>>>();
-
-                                if (single.isActiveAndEnabled)
-                                {
-                                    var diceCollection = new Dictionary<DiceType, List<int>>();
-                                    var r = single.transform.GetChild(0).GetComponent<TextMeshProUGUI>();
-                                    var t = single.transform.GetComponent<RawImage>();
-                                    var d = DiceType.d4;
-                                    switch (t.texture.name)
-                                    {
-                                        case "1D4":
-                                            d = DiceType.d4;
-                                            break;
-                                        case "1D6":
-                                            d = DiceType.d6;
-                                            break;
-                                        case "1D8":
-                                            d = DiceType.d8;
-                                            break;
-                                        case "1D10":
-                                            d = DiceType.d10;
-                                            break;
-                                        case "1D100":
-                                            d = DiceType.d100;
-                                            break;
-                                        case "1D12":
-                                            d = DiceType.d12;
-                                            break;
-                                        case "1D20":
-                                            d = DiceType.d20;
-                                            break;
-                                    }
-
-                                    if (!diceCollection.ContainsKey(d))
-                                    {
-                                        diceCollection.Add(d, new List<int>());
-                                    }
-
-                                    diceCollection[d].Add(int.Parse(r.text));
-                                    diceCollections.Add(new Dictionary<DiceType, List<int>>(diceCollection));
-                                }
-                                else
-                                {
-                                    var add = true;
-                                    var total = false;
-                                    var diceCollection = new Dictionary<DiceType, List<int>>();
-
-                                    var children = multi.Children().ToArray();
-                                    for (var i = 0; i < children.Count(); i++)
-                                    {
-                                        var child = children[i];
-                                        var ScoreItem = child.GetComponent<UIDiceScoreItem>();
-                                        var TextItem = child.GetComponent<TextMeshProUGUI>();
-                                        var TotalItem = child.GetComponent<UIDiceTotalItem>();
-
-                                        if (ScoreItem != null)
-                                        {
-                                            var r = ScoreItem.transform.GetChild(0).GetComponent<TextMeshProUGUI>();
-                                            var t = ScoreItem.transform.GetComponent<RawImage>();
-                                            var d = DiceType.d4;
-                                            switch (t.texture.name)
-                                            {
-                                                case "1D4":
-                                                    d = DiceType.d4;
-                                                    break;
-                                                case "1D6":
-                                                    d = DiceType.d6;
-                                                    break;
-                                                case "1D8":
-                                                    d = DiceType.d8;
-                                                    break;
-                                                case "1D10":
-                                                    d = DiceType.d10;
-                                                    break;
-                                                case "1D100":
-                                                    d = DiceType.d100;
-                                                    break;
-                                                case "1D12":
-                                                    d = DiceType.d12;
-                                                    break;
-                                                case "1D20":
-                                                    d = DiceType.d20;
-                                                    break;
-                                            }
-
-                                            if (!diceCollection.ContainsKey(d))
-                                            {
-                                                diceCollection.Add(d, new List<int>());
-                                            }
-
-                                            var value = int.Parse(r.text);
-                                            if (!add) value = -value;
-                                            diceCollection[d].Add(value);
-                                        }
-                                        else if (TotalItem != null)
-                                        {
-                                            if (total)
-                                            {
-                                                diceCollections.Add(
-                                                    new Dictionary<DiceType, List<int>>(diceCollection));
-                                                diceCollection.Clear();
-                                                total = false;
-                                                add = true;
-                                            }
-                                            else
-                                            {
-                                                var r = TotalItem.transform.GetComponent<TextMeshProUGUI>();
-                                                if (!diceCollection.ContainsKey(DiceType.modifier))
-                                                {
-                                                    diceCollection.Add(DiceType.modifier, new List<int>());
-                                                }
-
-                                                var value = int.Parse(r.text);
-                                                if (!add) value = -value;
-                                                diceCollection[DiceType.modifier].Add(value);
-                                            }
-                                        }
-                                        else if (TextItem != null)
-                                        {
-                                            switch (TextItem.text)
-                                            {
-                                                case "-":
-                                                    add = false;
-                                                    break;
-                                                case "+":
-                                                    add = true;
-                                                    break;
-                                                case "=":
-                                                    total = true;
-                                                    break;
-                                            }
-                                        }
-                                    }
-                                }
-
-                                if (!key.Equals(last_key) || !last.Equals(JsonConvert.SerializeObject(diceCollections)))
-                                {
-                                    last_key = key;
-                                    last = JsonConvert.SerializeObject(diceCollections);
-                                    var title = last_key.Substring(0, last_key.IndexOf("<size=0>"));
-                                    var formula = "";
-                                    if (DiceCallbacks.ContainsKey(key)) formula = DiceCallbacks[key].Item3;
-                                    Debug.Log($"Formula:{formula}");
-                                    Debug.Log($"Dice Data:{JsonConvert.SerializeObject(diceCollections)}");
-                                    if (DiceCallbacks.ContainsKey(key) && DiceCallbacks[key].Item1 != null)
-                                    {
-                                        var result = DiceCallbacks[key].Item1(diceCollections.ToArray(), title, formula,
-                                            DiceCallbacks[key].Item2);
-                                        if (result != null)
-                                        {
-                                            var text = multi.GetComponentsInChildren<TextMeshProUGUI>();
-                                            
-
-                                            if (!single.isActiveAndEnabled) ResultSetter.SetResults(key,text,result.Values);
-                                            if (!string.IsNullOrWhiteSpace(result.NewLine)) ResultSetter.NewResultLine(key, result.NewLine);
-                                            if (result.ClearResult) ResultSetter.RemoveResults(key);
-                                            ResultSetter.RemoveKey(key);
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-            else
-            {
-                last = "";
-                last_key = "";
-            }
-        }
 
         public class Dice
         {

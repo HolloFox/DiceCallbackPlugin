@@ -383,9 +383,11 @@
   <ItemGroup>
     <Compile Include="DiceCallbackPlugin.cs" />
     <Compile Include="DiceColor.cs" />
+    <Compile Include="Extensions\StringExtensions.cs" />
     <Compile Include="ModdingUtil.cs" />
     <Compile Include="Patches\DicePatch.cs" />
-    <Compile Include="ResultSetter.cs" />
+    <Compile Include="Patches\ResultPatch.cs" />
+    <Compile Include="Resources\MaterialsList.cs" />
     <Compile Include="DiceRoller.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Properties\Resources.Designer.cs">
@@ -393,7 +395,6 @@
       <DesignTime>True</DesignTime>
       <DependentUpon>Resources.resx</DependentUpon>
     </Compile>
-    <Compile Include="ResultSetterDTO.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

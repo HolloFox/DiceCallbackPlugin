@@ -1,9 +1,8 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
-using Bounce.Singletons;
+using DiceCallbackPlugin.Extensions;
 using HarmonyLib;
 using Newtonsoft.Json;
 using Unity.Mathematics;
@@ -42,7 +41,6 @@ namespace DiceCallbackPlugin.Patches
     [HarmonyPatch(typeof(Die), "Spawn")]
     public class DicePatchSpawn
     {
-        public static bool meCalling = false;
         static bool Prefix(string resource,
             float3 pos,
             quaternion rot,
@@ -51,25 +49,20 @@ namespace DiceCallbackPlugin.Patches
             bool gmOnlyDie, ref Die __result)
         {
             if (DicePatch2.color.Count == 0) return true;
+            var color = DicePatch2.color[0];
 
-            object[] data = new object[6]
+            object[] data = new object[4]
             {
                 (object) rollId,
                 (object) groupId,
                 (object) gmOnlyDie,
-                (object) DicePatch2.color[0].r,
-                (object) DicePatch2.color[0].g,
-                (object) DicePatch2.color[0].b,
+                (object) JsonConvert.SerializeObject(color),
             };
             Die component = PhotonNetwork.Instantiate(resource, (Vector3)pos, (Quaternion)rot, (byte)0, data).GetComponent<Die>();
-            
             Type classType = component.GetType();
             MethodInfo mi = classType.GetMethod("Init", BindingFlags.Instance | BindingFlags.NonPublic);
             mi.Invoke(component, new object[] { rollId, groupId, gmOnlyDie });
-
             __result = component;
-            Debug.Log("Spawn Method Executed");
-            meCalling = true;
             return false;
         }
     }
@@ -83,7 +76,8 @@ namespace DiceCallbackPlugin.Patches
             object[] instantiationData = __instance.photonView?.instantiationData;
             if (instantiationData != null && instantiationData.Length > 3)
             {
-                ___dieRenderer.material.SetColor("_Color", new Color((float)instantiationData[3], (float)instantiationData[4], (float)instantiationData[5]));
+                var color = JsonConvert.DeserializeObject<DiceColor>((string) instantiationData[3]);
+                color.SetRenderer(___dieRenderer);
             }
         }
     }
@@ -91,70 +85,62 @@ namespace DiceCallbackPlugin.Patches
     [HarmonyPatch(typeof(Die), "Init")]
     public class DicePatch2
     {
-        public static List<Color> color = new List<Color>();
+        public static List<DiceColor> color = new List<DiceColor>();
         static void Postfix(ref Renderer ___dieRenderer, int rollId, byte groupId, bool gmOnly, Material ___normalMaterial, Material ___gmMaterial)
         {
             if (!gmOnly && color.Count > 0)
             {
-                ___dieRenderer.material.SetColor("_Color", color[0]);
+                color[0].SetRenderer(___dieRenderer);
                 color.RemoveAt(0);
             }
         }
     }
 
-    static class StringExtensions
-    {
-
-        public static IEnumerable<String> SplitInParts(this String s, Int32 partLength)
-        {
-            if (s == null)
-                throw new ArgumentNullException(nameof(s));
-            if (partLength <= 0)
-                throw new ArgumentException("Part length has to be positive.", nameof(partLength));
-
-            for (var i = 0; i < s.Length; i += partLength)
-                yield return s.Substring(i, Math.Min(partLength, s.Length - i));
-        }
-
-    }
-
     [HarmonyPatch(typeof(UIDiceTray), "Spawn")]
     public class UIDiceTrayPatch
     {
-        static List<Color> StripColorTags(string flavor)
+        static List<DiceColor> StripTags(string flavor)
         {
-            var o = new List<Color>();
+            var o = new List<DiceColor>();
             flavor = flavor.Replace(" ",""); // strip white space
-            var i = flavor.IndexOf("<color=");
+            var i = flavor.IndexOf("<");
             if (i > 0)
             {
-                var xml = flavor.Substring(i);
-                var split = xml.Split('>').ToList();
-                split.Remove("");
+                var split = flavor.SplitTags();
                 foreach (var tag in split)
                 {
-                    var hex = tag.Replace("<color=","").Replace("\"","");
-                    Debug.Log($"Hex:{hex}");
-                    var hexParts = hex.SplitInParts(2).ToList();
-                    
-                    if (hexParts.Count == 3) hexParts.Add("FF");
-                    
-                    float red = int.Parse(hexParts[0], System.Globalization.NumberStyles.HexNumber)/255f;
-                    float green = int.Parse(hexParts[1], System.Globalization.NumberStyles.HexNumber)/255f;
-                    float blue = int.Parse(hexParts[2], System.Globalization.NumberStyles.HexNumber)/255f;
-                    float alpha = int.Parse(hexParts[3], System.Globalization.NumberStyles.HexNumber)/255f;
-                    var color = new Color(red, green, blue, alpha);
-                    o.Add(color);
+                    if (tag.Contains("<color="))
+                    {
+                        var hex = tag.Replace("<color=", "").Replace("\"", "");
+                        Debug.Log($"Hex:{hex}");
+                        var hexParts = hex.SplitInParts(2).ToList();
+
+                        if (hexParts.Count == 3) hexParts.Add("FF");
+
+                        float red = int.Parse(hexParts[0], System.Globalization.NumberStyles.HexNumber) / 255f;
+                        float green = int.Parse(hexParts[1], System.Globalization.NumberStyles.HexNumber) / 255f;
+                        float blue = int.Parse(hexParts[2], System.Globalization.NumberStyles.HexNumber) / 255f;
+                        float alpha = int.Parse(hexParts[3], System.Globalization.NumberStyles.HexNumber) / 255f;
+                        var color = new DiceColor(new Color(red, green, blue, alpha));
+                        o.Add(color);
+                    }else if (tag.Contains("<tex="))
+                    {
+                        var tex = tag.Replace("<tex=", "").Replace("\"", "");
+                        Debug.Log($"Texture:{tex}");
+                        var guid = new Guid(tex);
+                        Debug.Log($"Guid:{guid}");
+                        var color = new DiceColor(guid);
+                        o.Add(color);
+                    }
                 }
             }
             return o;
         }
 
         private static int last = -1;
-        private static int count = 0;
+        private static int count;
         static bool Prefix(bool isGmRoll, ref DiceRollDescriptor ____lastRollDescriptor, ref int ____diceRollId)
         {
-            Debug.Log($"Created:{____lastRollDescriptor.IsCreated}");
             DicePatch2.color.Clear();
             if (____lastRollDescriptor.Groups == null) return true;
             if (____lastRollDescriptor.Groups.Length > 0 )
@@ -167,13 +153,10 @@ namespace DiceCallbackPlugin.Patches
                     }
                 }
 
-                count++;    
-
-                Debug.Log($"{last}=>{____diceRollId}");
+                count++;
                 last = ____diceRollId;
                 var name = ____lastRollDescriptor.Groups[0].Name;
-                var colors = StripColorTags(name);
-                // Debug.Log($"Groups: {____lastRollDescriptor.Groups.Length}");
+                var colors = StripTags(name);
                 foreach (var group in ____lastRollDescriptor.Groups)
                 {
                     var count = 0;
@@ -190,10 +173,8 @@ namespace DiceCallbackPlugin.Patches
                             }
                         }
                         colors.RemoveAt(0);
-                        // Debug.Log($"Dice Count: {count}");
                     }
                 }
-                
             }
             return true;
         }

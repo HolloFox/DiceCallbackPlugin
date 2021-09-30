@@ -11,7 +11,7 @@ namespace DiceCallbackPlugin
     {
         // constants
         public const string Guid = "org.hollofox.plugins.DiceCallbackPlugin";
-        private const string Version = "2.3.0.0";
+        private const string Version = "3.0.0.0";
 
         /// <summary>
         /// Awake plugin
@@ -29,24 +29,7 @@ namespace DiceCallbackPlugin
         /// </summary>
         void Update()
         {
-            if (OnBoard())
-            {
-                DiceRoller.CheckDice();
-                ResultSetter.CheckResults();
-            }
-            else
-            {
-                DiceRoller.ExitBoard();
-                ResultSetter.ExitBoard();
-            }
-        }
 
-        private bool OnBoard()
-        {
-            return (CameraController.HasInstance &&
-                    BoardSessionManager.HasInstance &&
-                    BoardSessionManager.HasBoardAndIsInNominalState &&
-                    !BoardSessionManager.IsLoading);
         }
     }
 }
