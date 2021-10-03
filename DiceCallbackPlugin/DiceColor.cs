@@ -16,6 +16,7 @@ namespace DiceCallbackPlugin
         public float Green = -1f;
         public float Blue = -1f;
         public Guid TexId = Guid.Empty;
+        public bool isGm = false;
 
         [JsonConstructor]
         public DiceColor() { }

@@ -99,6 +99,30 @@ namespace DiceCallbackPlugin.Patches
     [HarmonyPatch(typeof(UIDiceTray), "Spawn")]
     public class UIDiceTrayPatch
     {
+        private static DiceColor FromHexTag(string tag)
+        {
+            var hex = tag.Replace("<color=", "").Replace("\"", "");
+            Debug.Log($"Hex:{hex}");
+            var hexParts = hex.SplitInParts(2).ToList();
+
+            if (hexParts.Count == 3) hexParts.Add("FF");
+
+            float red = int.Parse(hexParts[0], System.Globalization.NumberStyles.HexNumber) / 255f;
+            float green = int.Parse(hexParts[1], System.Globalization.NumberStyles.HexNumber) / 255f;
+            float blue = int.Parse(hexParts[2], System.Globalization.NumberStyles.HexNumber) / 255f;
+            float alpha = int.Parse(hexParts[3], System.Globalization.NumberStyles.HexNumber) / 255f;
+            return new DiceColor(new Color(red, green, blue, alpha));
+        }
+
+        private static DiceColor FromTexTag(string tag)
+        {
+            var tex = tag.Replace("<tex=", "").Replace("\"", "");
+            Debug.Log($"Texture:{tex}");
+            var guid = new Guid(tex);
+            Debug.Log($"Guid:{guid}");
+            return new DiceColor(guid);
+        }
+
         static List<DiceColor> StripTags(string flavor)
         {
             var o = new List<DiceColor>();
@@ -111,25 +135,23 @@ namespace DiceCallbackPlugin.Patches
                 {
                     if (tag.Contains("<color="))
                     {
-                        var hex = tag.Replace("<color=", "").Replace("\"", "");
-                        Debug.Log($"Hex:{hex}");
-                        var hexParts = hex.SplitInParts(2).ToList();
-
-                        if (hexParts.Count == 3) hexParts.Add("FF");
-
-                        float red = int.Parse(hexParts[0], System.Globalization.NumberStyles.HexNumber) / 255f;
-                        float green = int.Parse(hexParts[1], System.Globalization.NumberStyles.HexNumber) / 255f;
-                        float blue = int.Parse(hexParts[2], System.Globalization.NumberStyles.HexNumber) / 255f;
-                        float alpha = int.Parse(hexParts[3], System.Globalization.NumberStyles.HexNumber) / 255f;
-                        var color = new DiceColor(new Color(red, green, blue, alpha));
+                        var color = FromHexTag(tag);
                         o.Add(color);
                     }else if (tag.Contains("<tex="))
                     {
-                        var tex = tag.Replace("<tex=", "").Replace("\"", "");
-                        Debug.Log($"Texture:{tex}");
-                        var guid = new Guid(tex);
-                        Debug.Log($"Guid:{guid}");
-                        var color = new DiceColor(guid);
+                        var color = FromTexTag(tag);
+                        o.Add(color);
+                    }
+                    else if (tag.Contains("<gcolor="))
+                    {
+                        var color = FromHexTag(tag);
+                        color.isGm = true;
+                        o.Add(color);
+                    }
+                    else if (tag.Contains("<gtex="))
+                    {
+                        var color = FromTexTag(tag);
+                        color.isGm = true;
                         o.Add(color);
                     }
                 }

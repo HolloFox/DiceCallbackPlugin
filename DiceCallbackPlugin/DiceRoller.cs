@@ -68,6 +68,7 @@ namespace DiceCallbackPlugin
                 {
                     textFormula += "/";
                 }
+
                 for (var i = 0; i < keys.Length; i++)
                 {
                     var key = keys[i];
@@ -84,7 +85,11 @@ namespace DiceCallbackPlugin
                         first = false;
                     }
                 }
-                count++;
+
+                if (first)
+                {
+                    textFormula += $"0d6";
+                }
             }
 
             textFormula = textFormula.Replace("+-","-");

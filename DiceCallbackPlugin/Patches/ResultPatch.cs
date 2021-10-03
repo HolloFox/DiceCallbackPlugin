@@ -20,12 +20,12 @@ namespace DiceCallbackPlugin.Patches
         /// <summary>
         /// Callbacks for specific dice rolls with callback name recorded.
         /// </summary>
-        public static Dictionary<string, Func<DiceManager.DiceRollResultData, CallbackType, string>> Callbacks;
+        public static Dictionary<string, Func<DiceManager.DiceRollResultData, CallbackType, string>> Callbacks = new Dictionary<string, Func<DiceManager.DiceRollResultData, CallbackType, string>>();
         
         /// <summary>
         /// For any roll, albeit framework or not.
         /// </summary>
-        public static Dictionary<string,Func<DiceManager.DiceRollResultData, CallbackType, string>> GlobalCallbacks;
+        public static Dictionary<string,Func<DiceManager.DiceRollResultData, CallbackType, string>> GlobalCallbacks = new Dictionary<string, Func<DiceManager.DiceRollResultData, CallbackType, string>>();
 
         private static List<string> GetCallBackIds(List<string> tags)
         {
@@ -64,10 +64,12 @@ namespace DiceCallbackPlugin.Patches
 
             responses.AddRange(RegisteredCallbacks.GlobalCallbacks
                 .Select(callback => callback.Value(rollResultData, CallbackType.DiceRoll)));
-
+            
+            if (responses.Count > 0) ____titleText.text = "";
             foreach (var res in responses)
             {
-                ____titleText.text += "/n<size=1>" + res;
+                if (____titleText.text.Length > 0) ____titleText.text += "\n";
+                ____titleText.text += res;
             }
         }
     }
@@ -89,10 +91,11 @@ namespace DiceCallbackPlugin.Patches
             }
             responses.AddRange(RegisteredCallbacks.GlobalCallbacks
                 .Select(callback => callback.Value(rollResultData, CallbackType.UIChat)));
-
+            if (responses.Count > 0) ___rolledText.text = "";
             foreach (var res in responses)
             {
-                ___rolledText.text += "/n<size=1>" + res;
+                if (___rolledText.text.Length > 0) ___rolledText.text += "\n";
+                ___rolledText.text += res;
             }
         }
     }
