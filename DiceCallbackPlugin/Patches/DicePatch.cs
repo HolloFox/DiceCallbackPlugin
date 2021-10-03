@@ -101,8 +101,7 @@ namespace DiceCallbackPlugin.Patches
     {
         private static DiceColor FromHexTag(string tag)
         {
-            var hex = tag.Replace("<color=", "").Replace("\"", "");
-            Debug.Log($"Hex:{hex}");
+            var hex = tag.ToLower().Replace("<color=", "").Replace("<gcolor=", "").Replace("\"", "");
             var hexParts = hex.SplitInParts(2).ToList();
 
             if (hexParts.Count == 3) hexParts.Add("FF");
@@ -111,15 +110,14 @@ namespace DiceCallbackPlugin.Patches
             float green = int.Parse(hexParts[1], System.Globalization.NumberStyles.HexNumber) / 255f;
             float blue = int.Parse(hexParts[2], System.Globalization.NumberStyles.HexNumber) / 255f;
             float alpha = int.Parse(hexParts[3], System.Globalization.NumberStyles.HexNumber) / 255f;
+            
             return new DiceColor(new Color(red, green, blue, alpha));
         }
 
         private static DiceColor FromTexTag(string tag)
         {
-            var tex = tag.Replace("<tex=", "").Replace("\"", "");
-            Debug.Log($"Texture:{tex}");
+            var tex = tag.ToLower().Replace("<tex=", "").Replace("<gtex=", "").Replace("\"", "");
             var guid = new Guid(tex);
-            Debug.Log($"Guid:{guid}");
             return new DiceColor(guid);
         }
 
